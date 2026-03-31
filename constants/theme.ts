@@ -7,10 +7,28 @@ export const KopaColors = {
   tabBar: '#16213A',
   accent: '#4BAF7A',
   accentDark: '#3A9165',
+  accentLight: '#5DC98E',
   text: '#FFFFFF',
   textSecondary: '#C8D3E0',
   textMuted: '#7A8CA0',
   border: '#2A3A55',
+  live: '#FF4757',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  purple: '#8B5CF6',
+  orange: '#F97316',
+  teal: '#10B981',
+  gold: '#FFD700',
+};
+
+export const KopaGradients = {
+  accent: ['#4BAF7A', '#3A9165'] as const,
+  surface: ['#1A2540', '#162035'] as const,
+  header: ['#0F1724', '#1A2540'] as const,
+  live: ['#FF4757', '#E0313F'] as const,
+  gold: ['#FFD700', '#F59E0B'] as const,
+  purple: ['#8B5CF6', '#6D28D9'] as const,
+  welcome: ['#0F1724', '#162540', '#1A3050'] as const,
 };
 
 const tintColorLight = '#0a7ea4';
@@ -37,13 +55,9 @@ export const Colors = {
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

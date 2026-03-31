@@ -1,19 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedCard } from '@/components/AnimatedCard';
 import { KopaHeader } from '@/components/KopaHeader';
 import { KopaColors } from '@/constants/theme';
+
+const TABS = ['Mes pronos', 'Classement'];
 
 const MY_PRONOS = [
   {
     id: '1',
     match: 'PSG vs OM',
     competition: 'Ligue 1',
-    date: 'Aujourd\'hui 20:45',
+    date: "Aujourd'hui 20:45",
     prediction: 'PSG gagne',
     odds: '1.45',
-    status: 'pending',
+    status: 'pending' as const,
     points: 50,
   },
   {
@@ -23,7 +35,7 @@ const MY_PRONOS = [
     date: 'Hier 18:30',
     prediction: 'Bayern gagne',
     odds: '1.60',
-    status: 'won',
+    status: 'won' as const,
     points: 80,
   },
   {
@@ -33,115 +45,181 @@ const MY_PRONOS = [
     date: '29 Mars 16:00',
     prediction: 'Nul',
     odds: '3.20',
-    status: 'lost',
+    status: 'lost' as const,
     points: 0,
+  },
+  {
+    id: '4',
+    match: 'Barça vs Séville',
+    competition: 'LaLiga',
+    date: '28 Mars 21:00',
+    prediction: 'Barça gagne',
+    odds: '1.35',
+    status: 'won' as const,
+    points: 45,
   },
 ];
 
 const LEADERBOARD = [
-  { rank: 1, user: 'Alex_Pro', points: 1240, avatar: '#F97316' },
-  { rank: 2, user: 'Footmaster', points: 1180, avatar: '#8B5CF6' },
-  { rank: 3, user: 'PronoBoss', points: 1050, avatar: '#10B981' },
-  { rank: 4, user: 'Toi', points: 820, avatar: KopaColors.accent, isMe: true },
+  { rank: 1, user: 'Alex_Pro', points: 1240, avatar: '#F97316', winRate: '82%', streak: 7 },
+  { rank: 2, user: 'Footmaster', points: 1180, avatar: '#8B5CF6', winRate: '76%', streak: 4 },
+  { rank: 3, user: 'PronoBoss', points: 1050, avatar: '#10B981', winRate: '71%', streak: 3 },
+  { rank: 4, user: 'Toi', points: 820, avatar: KopaColors.accent, isMe: true, winRate: '68%', streak: 2 },
+  { rank: 5, user: 'SportFan', points: 780, avatar: '#E05D8A', winRate: '65%', streak: 1 },
+  { rank: 6, user: 'KingProno', points: 720, avatar: '#5D6BE0', winRate: '63%', streak: 0 },
 ];
 
 type PronoStatus = 'pending' | 'won' | 'lost';
 
-const STATUS_COLORS: Record<PronoStatus, string> = {
-  pending: '#F59E0B',
-  won: KopaColors.accent,
-  lost: '#EF4444',
+const STATUS_CONFIG: Record<PronoStatus, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  pending: { color: '#F59E0B', label: 'En attente', icon: 'time-outline' },
+  won: { color: KopaColors.accent, label: 'Gagné', icon: 'checkmark-circle' },
+  lost: { color: '#EF4444', label: 'Perdu', icon: 'close-circle' },
 };
 
-const STATUS_LABELS: Record<PronoStatus, string> = {
-  pending: 'En attente',
-  won: 'Gagné',
-  lost: 'Perdu',
-};
+function AnimatedStat({
+  value,
+  label,
+  color,
+  index,
+}: {
+  value: string;
+  label: string;
+  color: string;
+  index: number;
+}) {
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(0.8);
 
-function PronoCard({ prono }: { prono: (typeof MY_PRONOS)[0] }) {
-  const statusColors = STATUS_COLORS;
-  const statusLabels = STATUS_LABELS;
-  const status = prono.status as PronoStatus;
+  useEffect(() => {
+    opacity.value = withDelay(index * 100, withTiming(1, { duration: 500 }));
+    scale.value = withDelay(index * 100, withSpring(1, { damping: 15 }));
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
-    <View style={styles.pronoCard}>
-      <View style={styles.pronoHeader}>
-        <View>
-          <Text style={styles.pronoMatch}>{prono.match}</Text>
-          <Text style={styles.pronoMeta}>
-            {prono.competition} · {prono.date}
-          </Text>
+    <Animated.View style={[styles.statCard, animStyle]}>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+}
+
+function PronoCard({ prono, index }: { prono: (typeof MY_PRONOS)[0]; index: number }) {
+  const config = STATUS_CONFIG[prono.status];
+
+  return (
+    <AnimatedCard index={index}>
+      <View style={styles.pronoCard}>
+        <View style={styles.pronoHeader}>
+          <View style={styles.pronoInfo}>
+            <Text style={styles.pronoMatch}>{prono.match}</Text>
+            <Text style={styles.pronoMeta}>
+              {prono.competition} · {prono.date}
+            </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: config.color + '18' }]}>
+            <Ionicons name={config.icon} size={12} color={config.color} />
+            <Text style={[styles.statusText, { color: config.color }]}>
+              {config.label}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusColors[status] + '22' }]}>
-          <Text style={[styles.statusText, { color: statusColors[status] }]}>
-            {statusLabels[status]}
+        <View style={styles.pronoFooter}>
+          <View style={styles.predictionRow}>
+            <View style={styles.predictionChip}>
+              <Text style={styles.predictionText}>{prono.prediction}</Text>
+            </View>
+            <Text style={styles.oddsText}>×{prono.odds}</Text>
+          </View>
+          <Text style={[styles.pointsText, { color: config.color }]}>
+            {prono.status === 'lost' ? '0 pt' : `+${prono.points} pts`}
           </Text>
         </View>
       </View>
-      <View style={styles.pronoFooter}>
-        <View style={styles.predictionRow}>
-          <Ionicons name="checkmark-circle-outline" size={16} color={KopaColors.accent} />
-          <Text style={styles.predictionText}>{prono.prediction}</Text>
-          <Text style={styles.oddsText}>Cote {prono.odds}</Text>
-        </View>
-        <Text style={[styles.pointsText, { color: statusColors[status] }]}>
-          {prono.status === 'pending' ? `+${prono.points} pts` : prono.status === 'won' ? `+${prono.points} pts` : '0 pt'}
-        </Text>
-      </View>
-    </View>
+    </AnimatedCard>
   );
 }
 
 export default function PronosScreen() {
+  const [activeTab, setActiveTab] = useState(0);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <KopaHeader />
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Stats overview */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>820</Text>
-            <Text style={styles.statLabel}>Points</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>68%</Text>
-            <Text style={styles.statLabel}>Réussite</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>24</Text>
-            <Text style={styles.statLabel}>Pronos</Text>
-          </View>
+          <AnimatedStat value="820" label="Points" color={KopaColors.accent} index={0} />
+          <AnimatedStat value="68%" label="Réussite" color={KopaColors.teal} index={1} />
+          <AnimatedStat value="24" label="Pronos" color={KopaColors.purple} index={2} />
         </View>
 
-        <Text style={styles.sectionTitle}>Mes pronos</Text>
-        {MY_PRONOS.map((prono) => (
-          <PronoCard key={prono.id} prono={prono} />
-        ))}
-
-        <Text style={styles.sectionTitle}>Classement</Text>
-        <View style={styles.leaderboardCard}>
-          {LEADERBOARD.map((entry) => (
-            <View
-              key={entry.rank}
-              style={[styles.leaderRow, entry.isMe && styles.leaderRowMe]}
+        {/* Tab switcher */}
+        <View style={styles.tabRow}>
+          {TABS.map((tab, i) => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tabBtn, activeTab === i && styles.tabBtnActive]}
+              onPress={() => setActiveTab(i)}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.rankText, entry.rank <= 3 && styles.rankTextTop]}>
-                {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+              <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>
+                {tab}
               </Text>
-              <View style={[styles.leaderAvatar, { backgroundColor: entry.avatar }]}>
-                <Text style={styles.leaderAvatarText}>{entry.user[0]}</Text>
-              </View>
-              <Text style={[styles.leaderName, entry.isMe && styles.leaderNameMe]}>
-                {entry.user}
-              </Text>
-              <Text style={styles.leaderPoints}>{entry.points} pts</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
+        {activeTab === 0 ? (
+          <>
+            {MY_PRONOS.map((prono, i) => (
+              <PronoCard key={prono.id} prono={prono} index={i} />
+            ))}
+          </>
+        ) : (
+          <View style={styles.leaderboardCard}>
+            {LEADERBOARD.map((entry, i) => (
+              <AnimatedCard key={entry.rank} index={i}>
+                <View
+                  style={[styles.leaderRow, entry.isMe && styles.leaderRowMe]}
+                >
+                  <Text style={styles.rankText}>
+                    {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                  </Text>
+                  <View style={[styles.leaderAvatar, { backgroundColor: entry.avatar }]}>
+                    <Text style={styles.leaderAvatarText}>{entry.user[0]}</Text>
+                  </View>
+                  <View style={styles.leaderInfo}>
+                    <Text style={[styles.leaderName, entry.isMe && styles.leaderNameMe]}>
+                      {entry.user}
+                    </Text>
+                    <Text style={styles.leaderMeta}>
+                      {entry.winRate} réussite
+                      {entry.streak > 0 ? ` · 🔥${entry.streak}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.leaderPoints}>{entry.points} pts</Text>
+                </View>
+              </AnimatedCard>
+            ))}
+          </View>
+        )}
+
         <TouchableOpacity style={styles.newPronoBtn} activeOpacity={0.85}>
-          <Ionicons name="add-circle-outline" size={20} color="white" />
-          <Text style={styles.newPronoBtnText}>Faire un prono</Text>
+          <LinearGradient
+            colors={[KopaColors.accent, KopaColors.accentDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.newPronoBtnGradient}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="white" />
+            <Text style={styles.newPronoBtnText}>Faire un prono</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         <View style={{ height: 20 }} />
@@ -158,36 +236,57 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    gap: 10,
-    marginTop: 8,
+    gap: 8,
+    marginTop: 4,
     marginBottom: 4,
   },
   statCard: {
     flex: 1,
     backgroundColor: KopaColors.surface,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: KopaColors.border,
   },
   statValue: {
-    color: KopaColors.accent,
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
   },
   statLabel: {
     color: KopaColors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
+    fontWeight: '500',
   },
-  sectionTitle: {
-    color: KopaColors.text,
-    fontSize: 18,
-    fontWeight: '600',
-    paddingHorizontal: 16,
+  tabRow: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
     marginTop: 16,
-    marginBottom: 12,
+    marginBottom: 14,
+    backgroundColor: KopaColors.surface,
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: KopaColors.border,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabBtnActive: {
+    backgroundColor: KopaColors.accent,
+  },
+  tabText: {
+    color: KopaColors.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+    color: 'white',
+    fontWeight: '700',
   },
   pronoCard: {
     marginHorizontal: 16,
@@ -204,6 +303,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 10,
   },
+  pronoInfo: {
+    flex: 1,
+  },
   pronoMatch: {
     color: KopaColors.text,
     fontSize: 15,
@@ -215,13 +317,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
   pronoFooter: {
     flexDirection: 'row',
@@ -231,20 +336,27 @@ const styles = StyleSheet.create({
   predictionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 8,
+  },
+  predictionChip: {
+    backgroundColor: KopaColors.accent + '18',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   predictionText: {
-    color: KopaColors.textSecondary,
+    color: KopaColors.accent,
     fontSize: 13,
+    fontWeight: '600',
   },
   oddsText: {
     color: KopaColors.textMuted,
-    fontSize: 12,
-    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: '700',
   },
   pointsText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
   leaderboardCard: {
     marginHorizontal: 16,
@@ -263,21 +375,18 @@ const styles = StyleSheet.create({
     borderBottomColor: KopaColors.border,
   },
   leaderRowMe: {
-    backgroundColor: KopaColors.accent + '15',
+    backgroundColor: KopaColors.accent + '12',
   },
   rankText: {
     color: KopaColors.textMuted,
-    fontSize: 13,
+    fontSize: 14,
     width: 28,
     textAlign: 'center',
   },
-  rankTextTop: {
-    fontSize: 16,
-  },
   leaderAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -286,28 +395,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  leaderInfo: {
+    flex: 1,
+  },
   leaderName: {
     color: KopaColors.text,
     fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
+    fontWeight: '600',
   },
   leaderNameMe: {
     color: KopaColors.accent,
     fontWeight: '700',
   },
-  leaderPoints: {
+  leaderMeta: {
     color: KopaColors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  leaderPoints: {
+    color: KopaColors.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   newPronoBtn: {
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: KopaColors.accent,
     borderRadius: 14,
-    paddingVertical: 14,
+    overflow: 'hidden',
+    shadowColor: KopaColors.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  newPronoBtnGradient: {
     flexDirection: 'row',
+    paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
@@ -315,6 +438,6 @@ const styles = StyleSheet.create({
   newPronoBtnText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

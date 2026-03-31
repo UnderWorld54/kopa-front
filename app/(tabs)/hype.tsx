@@ -1,8 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AnimatedCard } from '@/components/AnimatedCard';
 import { KopaHeader } from '@/components/KopaHeader';
 import { KopaColors } from '@/constants/theme';
 
@@ -36,10 +45,11 @@ const MATCHES = [
     },
     time: '20:45',
     votes: { home: 65, draw: 15, away: 20 },
+    totalVotes: 2450,
   },
   {
     id: '2',
-    label: 'Championnat',
+    label: 'EL CLÁSICO',
     competition: 'LaLiga',
     competitionColor: '#EE3024',
     homeTeam: {
@@ -50,7 +60,7 @@ const MATCHES = [
       bgColor: '#A50044',
     },
     awayTeam: {
-      name: 'Madrid',
+      name: 'Real Madrid',
       shortName: 'Madrid',
       abbrev: 'RM',
       rank: '2ème du classement',
@@ -58,10 +68,11 @@ const MATCHES = [
     },
     time: '20:45',
     votes: { home: 42, draw: 18, away: 40 },
+    totalVotes: 1820,
   },
   {
     id: '3',
-    label: 'Championnat',
+    label: 'TOP AFFICHE',
     competition: 'Premier League',
     competitionColor: '#3D195B',
     homeTeam: {
@@ -80,13 +91,27 @@ const MATCHES = [
     },
     time: '18:30',
     votes: { home: 35, draw: 25, away: 40 },
+    totalVotes: 1340,
   },
 ];
 
-function CompetitionBadge({ name, color }: { name: string; color: string }) {
+function AnimatedVoteBar({ percent, delay: delayMs }: { percent: number; delay: number }) {
+  const width = useSharedValue(0);
+
+  useEffect(() => {
+    width.value = withDelay(delayMs, withSpring(percent, { damping: 20, stiffness: 80 }));
+  }, [percent]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    width: `${width.value}%`,
+    height: '100%',
+    backgroundColor: KopaColors.accent,
+    borderRadius: 2,
+  }));
+
   return (
-    <View style={[styles.competitionBadge, { backgroundColor: color }]}>
-      <Text style={styles.competitionText}>{name}</Text>
+    <View style={styles.voteBarBg}>
+      <Animated.View style={animStyle} />
     </View>
   );
 }
@@ -107,82 +132,90 @@ function TeamColumn({
       <View style={[styles.teamCircle, { backgroundColor: bgColor }]}>
         <Text style={styles.teamAbbrev}>{abbrev}</Text>
       </View>
-      <Text style={styles.teamName} numberOfLines={2}>
-        {name}
-      </Text>
+      <Text style={styles.teamName} numberOfLines={2}>{name}</Text>
       <Text style={styles.teamRank}>{rank}</Text>
     </View>
   );
 }
 
-function VoteBar({ percent }: { percent: number }) {
-  return (
-    <View style={styles.voteBarBg}>
-      <View style={[styles.voteBarFill, { width: `${percent}%` }]} />
-    </View>
-  );
-}
-
-function MatchCard({ match }: { match: (typeof MATCHES)[0] }) {
+function MatchCard({ match, index }: { match: (typeof MATCHES)[0]; index: number }) {
   const [voted, setVoted] = useState<'home' | 'draw' | 'away' | null>(null);
 
   return (
-    <View style={styles.matchCard}>
-      <View style={styles.matchCardHeader}>
-        <Text style={styles.matchLabel}>{match.label}</Text>
-        <CompetitionBadge name={match.competition} color={match.competitionColor} />
-      </View>
-
-      <View style={styles.teamsRow}>
-        <TeamColumn
-          abbrev={match.homeTeam.abbrev}
-          name={match.homeTeam.name}
-          rank={match.homeTeam.rank}
-          bgColor={match.homeTeam.bgColor}
-        />
-        <View style={styles.timeCenter}>
-          <Text style={styles.timeText}>{match.time}</Text>
+    <AnimatedCard index={index}>
+      <View style={styles.matchCard}>
+        <View style={styles.matchCardHeader}>
+          <Text style={styles.matchLabel}>{match.label}</Text>
+          <View style={[styles.competitionBadge, { backgroundColor: match.competitionColor }]}>
+            <Text style={styles.competitionText}>{match.competition}</Text>
+          </View>
         </View>
-        <TeamColumn
-          abbrev={match.awayTeam.abbrev}
-          name={match.awayTeam.name}
-          rank={match.awayTeam.rank}
-          bgColor={match.awayTeam.bgColor}
-        />
-      </View>
 
-      <View style={styles.voteButtons}>
-        {(
-          [
-            { key: 'home', label: match.homeTeam.shortName },
-            { key: 'draw', label: 'Nul' },
-            { key: 'away', label: match.awayTeam.shortName },
-          ] as const
-        ).map(({ key, label }) => (
-          <TouchableOpacity
-            key={key}
-            style={[styles.voteBtn, voted === key && styles.voteBtnActive]}
-            onPress={() => setVoted(key)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.voteBtnText, voted === key && styles.voteBtnTextActive]}>
-              {label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.teamsRow}>
+          <TeamColumn
+            abbrev={match.homeTeam.abbrev}
+            name={match.homeTeam.name}
+            rank={match.homeTeam.rank}
+            bgColor={match.homeTeam.bgColor}
+          />
+          <View style={styles.timeCenter}>
+            <Text style={styles.timeText}>{match.time}</Text>
+            <Text style={styles.totalVotes}>{match.totalVotes.toLocaleString('fr-FR')} votes</Text>
+          </View>
+          <TeamColumn
+            abbrev={match.awayTeam.abbrev}
+            name={match.awayTeam.name}
+            rank={match.awayTeam.rank}
+            bgColor={match.awayTeam.bgColor}
+          />
+        </View>
 
-      <View style={styles.voteBars}>
-        <VoteBar percent={match.votes.home} />
-        <VoteBar percent={match.votes.draw} />
-        <VoteBar percent={match.votes.away} />
-      </View>
+        <View style={styles.voteButtons}>
+          {(
+            [
+              { key: 'home', label: match.homeTeam.shortName, pct: match.votes.home },
+              { key: 'draw', label: 'Nul', pct: match.votes.draw },
+              { key: 'away', label: match.awayTeam.shortName, pct: match.votes.away },
+            ] as const
+          ).map(({ key, label, pct }) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.voteBtn, voted === key && styles.voteBtnActive]}
+              onPress={() => setVoted(key)}
+              activeOpacity={0.8}
+            >
+              {voted === key ? (
+                <LinearGradient
+                  colors={[KopaColors.accent, KopaColors.accentDark]}
+                  style={styles.voteBtnGradient}
+                >
+                  <Text style={styles.voteBtnTextActive}>{label}</Text>
+                  <Text style={styles.votePct}>{pct}%</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.voteBtnInner}>
+                  <Text style={styles.voteBtnText}>{label}</Text>
+                  <Text style={styles.votePctInactive}>{pct}%</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <TouchableOpacity style={styles.commentRow}>
-        <Ionicons name="chatbubble-outline" size={16} color={KopaColors.textMuted} />
-        <Text style={styles.commentText}>Commenter</Text>
-      </TouchableOpacity>
-    </View>
+        <View style={styles.voteBars}>
+          <AnimatedVoteBar percent={match.votes.home} delay={index * 100 + 200} />
+          <AnimatedVoteBar percent={match.votes.draw} delay={index * 100 + 300} />
+          <AnimatedVoteBar percent={match.votes.away} delay={index * 100 + 400} />
+        </View>
+
+        <TouchableOpacity style={styles.commentRow}>
+          <Ionicons name="chatbubble-outline" size={15} color={KopaColors.textMuted} />
+          <Text style={styles.commentText}>Commenter</Text>
+          <View style={{ flex: 1 }} />
+          <Ionicons name="share-social-outline" size={15} color={KopaColors.textMuted} />
+        </TouchableOpacity>
+      </View>
+    </AnimatedCard>
   );
 }
 
@@ -215,8 +248,8 @@ export default function HypeScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Matchs du jour</Text>
-        {MATCHES.map((match) => (
-          <MatchCard key={match.id} match={match} />
+        {MATCHES.map((match, i) => (
+          <MatchCard key={match.id} match={match} index={i} />
         ))}
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -234,7 +267,7 @@ const styles = StyleSheet.create({
   },
   filtersContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 8,
   },
   filterChip: {
@@ -246,7 +279,7 @@ const styles = StyleSheet.create({
     borderColor: KopaColors.border,
   },
   filterChipActive: {
-    backgroundColor: KopaColors.surfaceLight,
+    backgroundColor: KopaColors.accent + '18',
     borderColor: KopaColors.accent,
   },
   filterText: {
@@ -255,19 +288,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   filterTextActive: {
-    color: KopaColors.text,
-    fontWeight: '600',
+    color: KopaColors.accent,
+    fontWeight: '700',
   },
   sectionTitle: {
     color: KopaColors.text,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     paddingHorizontal: 16,
     marginBottom: 12,
   },
   matchCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     backgroundColor: KopaColors.surface,
     borderRadius: 16,
     padding: 16,
@@ -278,7 +311,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   matchLabel: {
     color: KopaColors.textMuted,
@@ -300,44 +333,55 @@ const styles = StyleSheet.create({
   teamsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   teamColumn: {
     flex: 1,
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   teamCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   teamAbbrev: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   teamName: {
     color: KopaColors.text,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
   },
   teamRank: {
     color: KopaColors.textMuted,
-    fontSize: 11,
+    fontSize: 10,
     textAlign: 'center',
   },
   timeCenter: {
-    width: 60,
+    width: 70,
     alignItems: 'center',
+    gap: 4,
   },
   timeText: {
     color: KopaColors.text,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  totalVotes: {
+    color: KopaColors.textMuted,
+    fontSize: 10,
+    fontWeight: '500',
   },
   voteButtons: {
     flexDirection: 'row',
@@ -346,28 +390,47 @@ const styles = StyleSheet.create({
   },
   voteBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: KopaColors.accent,
-    alignItems: 'center',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: KopaColors.surfaceLight,
   },
   voteBtnActive: {
-    backgroundColor: KopaColors.accentDark,
-    borderWidth: 2,
-    borderColor: 'white',
+    backgroundColor: 'transparent',
+  },
+  voteBtnGradient: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  voteBtnInner: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 2,
   },
   voteBtnText: {
-    color: 'white',
+    color: KopaColors.textSecondary,
     fontSize: 13,
     fontWeight: '600',
   },
   voteBtnTextActive: {
+    color: 'white',
+    fontSize: 13,
     fontWeight: '700',
+  },
+  votePct: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  votePctInactive: {
+    color: KopaColors.textMuted,
+    fontSize: 10,
+    fontWeight: '600',
   },
   voteBars: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   voteBarBg: {
     flex: 1,
@@ -375,11 +438,6 @@ const styles = StyleSheet.create({
     backgroundColor: KopaColors.border,
     borderRadius: 2,
     overflow: 'hidden',
-  },
-  voteBarFill: {
-    height: '100%',
-    backgroundColor: KopaColors.accent,
-    borderRadius: 2,
   },
   commentRow: {
     flexDirection: 'row',
