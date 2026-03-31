@@ -1,9 +1,17 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
+
+export const KopaColors = {
+  background: '#0F1724',
+  surface: '#1A2540',
+  surfaceLight: '#243050',
+  tabBar: '#16213A',
+  accent: '#4BAF7A',
+  accentDark: '#3A9165',
+  text: '#FFFFFF',
+  textSecondary: '#C8D3E0',
+  textMuted: '#7A8CA0',
+  border: '#2A3A55',
+};
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
