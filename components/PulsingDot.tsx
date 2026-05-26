@@ -1,36 +1,29 @@
-import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect } from "react";
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 interface PulsingDotProps {
   color?: string;
   size?: number;
 }
 
-export function PulsingDot({ color = '#FF4757', size = 8 }: PulsingDotProps) {
-  const scale = useSharedValue(1);
+export function PulsingDot({ color = "#EF4444", size = 8 }: PulsingDotProps) {
   const opacity = useSharedValue(1);
 
   useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.6, { duration: 800 }),
-        withTiming(1, { duration: 800 })
-      ),
-      -1
-    );
+    const easing = Easing.inOut(Easing.ease);
     opacity.value = withRepeat(
       withSequence(
-        withTiming(0.4, { duration: 800 }),
-        withTiming(1, { duration: 800 })
+        withTiming(0.3, { duration: 1000, easing }),
+        withTiming(1, { duration: 1000, easing }),
       ),
-      -1
+      -1,
     );
   }, []);
 
@@ -39,7 +32,6 @@ export function PulsingDot({ color = '#FF4757', size = 8 }: PulsingDotProps) {
     height: size,
     borderRadius: size / 2,
     backgroundColor: color,
-    transform: [{ scale: scale.value }],
     opacity: opacity.value,
   }));
 

@@ -1,130 +1,61 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { useEffect } from "react";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
-  withSequence,
-  withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { KopaColors } from '@/constants/theme';
-
-const { width, height } = Dimensions.get('window');
-
-function FloatingIcon({
-  icon,
-  size,
-  color,
-  startX,
-  startY,
-  delay: delayMs,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  size: number;
-  color: string;
-  startX: number;
-  startY: number;
-  delay: number;
-}) {
-  const translateY = useSharedValue(0);
-  const opacity = useSharedValue(0);
-  const rotate = useSharedValue(0);
-
-  useEffect(() => {
-    opacity.value = withDelay(delayMs, withTiming(0.15, { duration: 1000 }));
-    translateY.value = withDelay(
-      delayMs,
-      withRepeat(
-        withSequence(
-          withTiming(-20, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-          withTiming(20, { duration: 2500, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      )
-    );
-    rotate.value = withDelay(
-      delayMs,
-      withRepeat(
-        withSequence(
-          withTiming(10, { duration: 3000 }),
-          withTiming(-10, { duration: 3000 })
-        ),
-        -1,
-        true
-      )
-    );
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    left: startX,
-    top: startY,
-    opacity: opacity.value,
-    transform: [
-      { translateY: translateY.value },
-      { rotate: `${rotate.value}deg` },
-    ],
-  }));
-
-  return (
-    <Animated.View style={style}>
-      <Ionicons name={icon} size={size} color={color} />
-    </Animated.View>
-  );
-}
+import { useThemeColors, useIsDark } from "@/hooks/useTheme";
 
 export default function WelcomeScreen() {
-  const logoScale = useSharedValue(0.5);
+  const colors = useThemeColors();
+  const isDark = useIsDark();
+
   const logoOpacity = useSharedValue(0);
+  const logoTranslateY = useSharedValue(16);
   const subtitleOpacity = useSharedValue(0);
-  const subtitleTranslateY = useSharedValue(20);
   const buttonsOpacity = useSharedValue(0);
-  const buttonsTranslateY = useSharedValue(40);
-  const pulseScale = useSharedValue(1);
+  const buttonsTranslateY = useSharedValue(20);
 
   useEffect(() => {
-    // Logo entrance
-    logoScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    logoOpacity.value = withTiming(1, { duration: 800 });
-
-    // Subtitle
-    subtitleOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    subtitleTranslateY.value = withDelay(400, withSpring(0, { damping: 20 }));
-
-    // Buttons
-    buttonsOpacity.value = withDelay(700, withTiming(1, { duration: 600 }));
-    buttonsTranslateY.value = withDelay(700, withSpring(0, { damping: 20 }));
-
-    // Pulse on logo circle
-    pulseScale.value = withDelay(
-      1200,
-      withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 1500 }),
-          withTiming(1, { duration: 1500 })
-        ),
-        -1
-      )
+    const ease = Easing.out(Easing.quad);
+    logoOpacity.value = withTiming(1, { duration: 600, easing: ease });
+    logoTranslateY.value = withTiming(0, { duration: 600, easing: ease });
+    subtitleOpacity.value = withDelay(
+      250,
+      withTiming(1, { duration: 500, easing: ease }),
+    );
+    buttonsOpacity.value = withDelay(
+      450,
+      withTiming(1, { duration: 500, easing: ease }),
+    );
+    buttonsTranslateY.value = withDelay(
+      450,
+      withTiming(0, { duration: 500, easing: ease }),
     );
   }, []);
 
   const logoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: logoScale.value }],
     opacity: logoOpacity.value,
+    transform: [{ translateY: logoTranslateY.value }],
   }));
 
   const subtitleStyle = useAnimatedStyle(() => ({
     opacity: subtitleOpacity.value,
-    transform: [{ translateY: subtitleTranslateY.value }],
   }));
 
   const buttonsStyle = useAnimatedStyle(() => ({
@@ -132,84 +63,125 @@ export default function WelcomeScreen() {
     transform: [{ translateY: buttonsTranslateY.value }],
   }));
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-  }));
+  const glassIntensity = isDark ? 40 : 60;
+  const glassTint = isDark ? "dark" : "light";
 
   return (
-    <LinearGradient colors={['#0F1724', '#142035', '#1A2D4A']} style={styles.gradient}>
+    <LinearGradient
+      colors={
+        isDark
+          ? [colors.background, "#0E0E12", colors.surface]
+          : [colors.background, colors.surface, colors.surfaceRaised]
+      }
+      style={styles.gradient}
+    >
       <SafeAreaView style={styles.container}>
-        {/* Floating background icons */}
-        <FloatingIcon icon="football" size={32} color={KopaColors.accent} startX={width * 0.1} startY={height * 0.12} delay={0} />
-        <FloatingIcon icon="basketball" size={28} color={KopaColors.purple} startX={width * 0.75} startY={height * 0.08} delay={300} />
-        <FloatingIcon icon="tennisball" size={24} color={KopaColors.warning} startX={width * 0.6} startY={height * 0.22} delay={600} />
-        <FloatingIcon icon="trophy" size={30} color={KopaColors.gold} startX={width * 0.15} startY={height * 0.3} delay={200} />
-        <FloatingIcon icon="flame" size={26} color={KopaColors.live} startX={width * 0.8} startY={height * 0.35} delay={500} />
-        <FloatingIcon icon="shirt" size={24} color={KopaColors.textMuted} startX={width * 0.4} startY={height * 0.1} delay={800} />
-
         <View style={styles.content}>
+          {/* Logo */}
           <View style={styles.logoSection}>
-            <Animated.View style={logoStyle}>
-              <View style={styles.logoRow}>
-                <Animated.View style={[styles.logoCircle, pulseStyle]}>
-                  <Ionicons name="football" size={28} color="white" />
-                </Animated.View>
-                <Text style={styles.logoText}>Kopa</Text>
+            <Animated.View style={[styles.logoGroup, logoStyle]}>
+              <View
+                style={[styles.logoCircle, { backgroundColor: colors.accent }]}
+              >
+                <Ionicons name="football" size={24} color="#FFF" />
               </View>
+              <Text style={[styles.logoText, { color: colors.text }]}>
+                Kopa
+              </Text>
             </Animated.View>
 
             <Animated.View style={subtitleStyle}>
-              <Text style={styles.tagline}>Le sport, ensemble.</Text>
-              <Text style={styles.subtitle}>Pronostique, débats et vis{'\n'}tes matchs avec ta communauté</Text>
-            </Animated.View>
-
-            {/* Feature pills */}
-            <Animated.View style={[styles.featurePills, subtitleStyle]}>
-              <View style={styles.pill}>
-                <Ionicons name="flash" size={14} color={KopaColors.accent} />
-                <Text style={styles.pillText}>Live</Text>
-              </View>
-              <View style={styles.pill}>
-                <Ionicons name="trending-up" size={14} color={KopaColors.orange} />
-                <Text style={styles.pillText}>Pronos</Text>
-              </View>
-              <View style={styles.pill}>
-                <Ionicons name="people" size={14} color={KopaColors.purple} />
-                <Text style={styles.pillText}>Clubs</Text>
-              </View>
+              <Text style={[styles.tagline, { color: colors.text }]}>
+                Le sport, ensemble.
+              </Text>
+              <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+                Pronostique, débats et vis{"\n"}tes matchs avec ta communauté
+              </Text>
             </Animated.View>
           </View>
 
+          {/* Buttons */}
           <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
+            {/* Primary — glass accent */}
             <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => router.replace('/(tabs)')}
-              activeOpacity={0.85}
+              onPress={() => router.replace("/(tabs)")}
+              activeOpacity={0.8}
+              style={styles.glassButtonWrapper}
             >
-              <LinearGradient
-                colors={[KopaColors.accent, KopaColors.accentDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryGradient}
+              <BlurView
+                intensity={glassIntensity}
+                tint={glassTint}
+                style={styles.glassButtonBlur}
               >
-                <Text style={styles.primaryButtonText}>Créer un compte</Text>
-                <Ionicons name="arrow-forward" size={18} color="white" />
-              </LinearGradient>
+                <View
+                  style={[
+                    styles.glassButtonInner,
+                    {
+                      backgroundColor: `${colors.accent}18`,
+                      borderColor: `${colors.accent}40`,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.primaryBtnText, { color: colors.accent }]}
+                  >
+                    Créer un compte
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={colors.accent}
+                  />
+                </View>
+              </BlurView>
             </TouchableOpacity>
 
+            {/* Secondary — glass neutral */}
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={() => router.replace('/(tabs)')}
-              activeOpacity={0.85}
+              onPress={() => router.replace("/(tabs)")}
+              activeOpacity={0.8}
+              style={styles.glassButtonWrapper}
             >
-              <Text style={styles.secondaryButtonText}>Se connecter</Text>
+              <BlurView
+                intensity={glassIntensity}
+                tint={glassTint}
+                style={styles.glassButtonBlur}
+              >
+                <View
+                  style={[
+                    styles.glassButtonInner,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.04)"
+                        : "rgba(0,0,0,0.03)",
+                      borderColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.06)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.secondaryBtnText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Se connecter
+                  </Text>
+                </View>
+              </BlurView>
             </TouchableOpacity>
 
-            <Text style={styles.legalText}>
-              En continuant, tu acceptes nos{' '}
-              <Text style={styles.legalLink}>CGU</Text>
-              {' '}et notre{' '}
-              <Text style={styles.legalLink}>Politique de confidentialité</Text>.
+            <Text style={[styles.legalText, { color: colors.textMuted }]}>
+              En continuant, tu acceptes nos{" "}
+              <Text style={[styles.legalLink, { color: colors.textSecondary }]}>
+                CGU
+              </Text>{" "}
+              et notre{" "}
+              <Text style={[styles.legalLink, { color: colors.textSecondary }]}>
+                Politique de confidentialité
+              </Text>
+              .
             </Text>
           </Animated.View>
         </View>
@@ -227,121 +199,81 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     paddingHorizontal: 24,
     paddingBottom: 16,
   },
   logoSection: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 24,
   },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  logoGroup: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 14,
   },
   logoCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: KopaColors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: KopaColors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoText: {
-    color: KopaColors.text,
-    fontSize: 42,
-    fontWeight: '800',
+    fontSize: 40,
+    fontWeight: "800",
     letterSpacing: -1,
   },
   tagline: {
-    color: KopaColors.text,
     fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
-    color: KopaColors.textMuted,
     fontSize: 15,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
-  featurePills: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+  buttonsSection: {
+    gap: 10,
   },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: KopaColors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  glassButtonWrapper: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  glassButtonBlur: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  glassButtonInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: KopaColors.border,
-  },
-  pillText: {
-    color: KopaColors.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  buttonsSection: {
-    gap: 12,
-  },
-  primaryButton: {
-    borderRadius: 30,
-    overflow: 'hidden',
-    shadowColor: KopaColors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  primaryGradient: {
-    flexDirection: 'row',
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
   },
-  primaryButtonText: {
-    color: KopaColors.text,
-    fontSize: 17,
-    fontWeight: '700',
+  primaryBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
-  secondaryButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 30,
-    paddingVertical: 18,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  secondaryButtonText: {
-    color: KopaColors.text,
-    fontSize: 17,
-    fontWeight: '600',
+  secondaryBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   legalText: {
-    color: KopaColors.textMuted,
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 18,
     marginTop: 4,
   },
   legalLink: {
-    color: KopaColors.textSecondary,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
 });

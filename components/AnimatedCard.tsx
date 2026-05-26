@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
-import { ViewProps } from 'react-native';
+import { useEffect } from "react";
+import { type ViewProps } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSpring,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 interface AnimatedCardProps extends ViewProps {
   index?: number;
@@ -14,17 +14,27 @@ interface AnimatedCardProps extends ViewProps {
   children: React.ReactNode;
 }
 
-export function AnimatedCard({ index = 0, delay, children, style, ...props }: AnimatedCardProps) {
+export function AnimatedCard({
+  index = 0,
+  delay,
+  children,
+  style,
+  ...props
+}: AnimatedCardProps) {
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(30);
+  const translateY = useSharedValue(12);
 
-  const computedDelay = delay ?? index * 80;
+  const computedDelay = delay ?? index * 50;
 
   useEffect(() => {
-    opacity.value = withDelay(computedDelay, withTiming(1, { duration: 400 }));
+    const easing = Easing.out(Easing.quad);
+    opacity.value = withDelay(
+      computedDelay,
+      withTiming(1, { duration: 300, easing }),
+    );
     translateY.value = withDelay(
       computedDelay,
-      withSpring(0, { damping: 20, stiffness: 200 })
+      withTiming(0, { duration: 300, easing }),
     );
   }, []);
 
