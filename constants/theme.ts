@@ -14,11 +14,11 @@ export const spacing = {
 
 // --- Border radius ---
 export const radius = {
-  sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  "2xl": 20,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 22,
+  "2xl": 26,
   full: 9999,
 } as const;
 
